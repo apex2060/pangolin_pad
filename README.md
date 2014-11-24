@@ -1,12 +1,12 @@
-pangolin_pad
-============
+WELCOME
+=======
 
-Welcome.
+Hello.
 
 I'm using this repository to store code from tutorials on http://pangolinpad.wordpress.com, 
 to backup my other projects and to store notes on things that I need to refer to every so often.
 
-Direcory breakdown:
+Directory breakdown:
   - Tutorials
       - Fairly self explanitory, here's where you'll find code discussed on http://pangolinpad.wordpress.com.
   - Backup
