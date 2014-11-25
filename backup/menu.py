@@ -6,6 +6,9 @@ import time
 import subprocess
 import Adafruit_CharLCD as LCD
 
+programA = '/home/pi/jam/time/timelapse.py'
+programB = '/home/pi/Programs/LCD/blank.py'
+
 # Initialize the LCD using the pins
 lcd = LCD.Adafruit_CharLCDPlate()
 
@@ -53,14 +56,38 @@ def myIP(delay):
 	lcd.message('HEADLESS MENU')
 
 def run(program):
+# Headless run program functionality
+	localButtons = ( (LCD.SELECT, 'Back' ),
+	            (LCD.LEFT,   'RUN' ),
+	            (LCD.UP,     'Back' ),
+	            (LCD.DOWN,   'Back' ),
+	            (LCD.RIGHT,  'Cancel' ) )
+
+
 # Runs the specified program
 	name = program.split('/')
 	lcd.clear()
-	lcd.message('Running:\n%s' % name[-1])
-	os.system('sudo python %s' % program)
-	lcd.clear()
-	lcd.message('Running:\nDone!')
-	time.sleep(2)
+	lcd.message('%s' % name[-1])
+
+	lcd.message('\n< RUN | CANCEL >')
+	loop = True
+	while loop == True:
+	        # Loop through each button and check if it is pressed.
+	        for button in localButtons:
+	                if lcd.is_pressed(button[0]):
+	                        # Button is pressed, change the message and start program.
+	                        lcd.clear()
+				time.sleep(0.5)	
+				if button[1] == 'RUN':
+					lcd.clear()
+					lcd.message('Running:\n%s' % name)
+					os.system('sudo python %s' % program)
+					lcd.clear()
+					lcd.message('Running:\nDone!')
+					time.sleep(2)
+
+				loop = False
+	
 
 	lcd.clear()
 	lcd.set_color(1,1,1)
@@ -76,13 +103,36 @@ def blank(delay):
 	lcd.clear()
 	lcd.message('HEADLESS MENU')
 
+def info(delay):
+	for button in buttons:
+		direction = button[0]
+		if direction == 0:
+			direction = 'Select'
+		elif direction == 4:
+			direction = 'Left'
+		elif direction == 3:
+			direction = 'Up'
+		elif direction == 2:
+			direction = 'Down'
+		else:
+			direction = 'Right'
+
+		funct = button[1][1:]
+		if funct == "Run program":
+			funct = button[3].split('/')
+			funct = funct[-1]
+		lcd.message('%s:\n%s' % (direction, funct))
+		time.sleep(delay)
+		lcd.clear()
+	lcd.message('HEADLESS MENU')
+
 # Make list of button value, text, and associated action.
 	     # button    display          command    parameter
 buttons = ( (LCD.SELECT, '\nQuit'        , quit    , 0),
             (LCD.LEFT,   '\nIP Address'  , myIP    , 5),
-            (LCD.UP,     '\nTime-lapse'  , run     , '/home/pi/jam/time/timelapse.py'),
-            (LCD.DOWN,   '\nEmpty slot'  , blank   , 3 ),
-            (LCD.RIGHT,  '\nEmpty slot'  , blank   , 3 ) )
+            (LCD.UP,     '\nRun program' , run     , programA),
+            (LCD.DOWN,   '\nRun program' , run     , programB),
+            (LCD.RIGHT,  '\nInfo'        , info    , 2 ) )
 
 try:
 	print 'Press Ctrl-C to quit.'
