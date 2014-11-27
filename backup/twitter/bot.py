@@ -17,11 +17,11 @@ keyfile = 'key_words.txt'
 def newFile():
 	# Checks id there's an API file present & creates one if not
 
-	# 22rPi API details
-	Ckey = '5jVDB0sTUntE1jYDi8ADUdmIG'
-	Csec = 'UA7Gu7H082KS945aODxTeG2XcgPvHzQcqYdRKi5vhS8OzbPgy1'
-	Atok = '2535779829-UORPwp6LAtrSSNg3XbJJZ1NX4AdGRA6jxiQAAeF'
-	Asec = '4KSNu5E4PPnp5RItux6J8rs5g5vved0trNWEvjPAFabtQ'
+	# API details
+	Ckey = ' '
+	Csec = ' '
+	Atok = ' '
+	Asec = ' '
 
 	if os.path.exists(account + '.dat'):
 		return True
