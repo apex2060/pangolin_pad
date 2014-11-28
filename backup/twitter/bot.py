@@ -14,6 +14,7 @@ interval = 1	# Time between twitter scans (minutes)
 account = 'puzzleIsland'	# API details stored in file with this name
 keyfile = 'key_words.txt'	# Search terms stored in file with this name
 historyFile = 'postHistory.log'	# This program's posts recorded in file with this name
+messageFile = 'messages.txt'	# Your responses are retrieved from here
 
 # Default search terms & messages if none are set in keyFile or messageFile above
 defaultSearch = ['keyphrase01', 'keyphrase02']
@@ -52,14 +53,14 @@ def readKeywords():
 		keywords = readFile.read()
 		readFile.close()
 
-		keyword = keyword.split('\n')
+		keywords = keywords.split('\n')
 		 # Reading from a file adds an empty line, which we don't want in the list
-		keyword.pop()
-		return keyword
+		keywords.pop()
+		return keywords
 	else:
 		# Create file with default keywords
 		if DEBUG:
-			PRINT 'DEBUG: Using default keywords'
+			print 'DEBUG: Using default keywords'
 		newFile = open(keyfile, 'w', 0)
 		for phrase in defaultSearch:
 			newFile.write('%s\n' % phrase)
@@ -68,7 +69,7 @@ def readKeywords():
 
 def readMessage():
 # Reads preset tweets from message.txt
-	if os.path.exists(messageFile):
+	if os.path.exists(historyFile):
 		# Read messages
 		if DEBUG:
 			print 'DEBUG: Loading messages'
@@ -82,7 +83,7 @@ def readMessage():
 		# No preset messages, create file with defaults
 		if DEBUG:
 			print 'DEBUG: Using default messages'
-		newFile = open(keyfile, 'w', 0)
+		newFile = open(messageFile, 'w', 0)
 		for message in defaultMessage:
 			newFile.write('%s\n' % message)
 		newFile.close()
@@ -95,10 +96,14 @@ def matchPosts():
 	keywords = readKeywords()
 	messages = readMessage()
 	postDictionary = {}
-	for x in range(len(keywords)-1):
-		postDictionary[keyword[x]] = message[x]
+	for x in range(len(keywords)):
+		postDictionary[keywords[x]] = messages[x]
 		if DEBUG:
-			print postDictionary[keyword[x]]
+			print postDictionary[keywords[x]]
+#	postDictionary = {
+#			'key1': 'value1',
+#			'key2': 'value2'
+#			}
 	return postDictionary
 
 # ---------------------------------------------------------------------------------------
@@ -125,27 +130,36 @@ def scan():
 		print 'DEBUG: Searching Twitter'
 	for keyword, message in postDictionary.items():
 		if DEBUG:
-			print 'Keyword: %s' % keyword
+			print keyword, message
 		# Search for tweets containing the keyword
 		hits.append(twitter.read_tweet(account, keyword)) 
 		for hit in hits:
 			# Pass our response message to respond()
 			respond(hit, message) 
+	return hits
 
 def respond(tweet, message):
 # Posts *message* to the owner of *tweet*
-	name = hit[0]['screen_name']
-	text = hit[0]['text']
-	myPost = "%s %s" % (name, message)
-	if DEBUG:
-		print 'DEBUG: Composing response'
+#	print '***%s' % tweet
+	if tweet != []:
+		print '***%s' % tweet[0]
+		name = tweet[0]['screen_name']
+		text = tweet[0]['text']
 
-	if record(name, text, myPost) == True:
-		post(myPost)
-	else:
+		myPost = "%s %s" % (name, message)
 		if DEBUG:
-			print 'DEBUG: %s has been contacted before, ignoring their tweet:\n %s' % (name, text)
-		print
+			print 'DEBUG: Composing response'
+	
+		if record(name, text, myPost) == True:
+#			post(myPost)
+			print 'POST PLACEHOLDER'
+		else:
+			if DEBUG:
+				print 'DEBUG: %s has been contacted before, ignoring their tweet:\n %s' % (name, text)
+				print
+
+	else:
+		print 'No hits'
 
 def post(message):
 # Post preset tweet online
@@ -195,7 +209,6 @@ def record(customer, theirPost, myPost):
 # ----------------------------------------------------------------------------------------
 # THIS IS THE MAIN LOOP OF THE PROGRAM THAT BRINGS ALL OF THE ABOVE TOGETHER
 def main():
-	os.syetem('clear')
 	print 'TWEETBOT is running'
 	if DEBUG:
 		print 'DEBUG MODE ON'
@@ -207,9 +220,10 @@ def main():
 
 	while True:
 		hits = scan()
+		if hits[0] != []:
 			for hit in hits:
-				print "%s\n\n" % (hit[0]['screen_ name'], hit[0]['text'])
-				time.sleep(interval*60)
-
+				print "%s\n%s\n" % (hit['screen_ name'], hit['text'])
+		time.sleep(interval*60)
+			
 if __name__ == '__main__':
 	main()
