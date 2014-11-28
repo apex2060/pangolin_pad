@@ -13,7 +13,7 @@ interval = 1	# Time between twitter scans (minutes)
 
 account = 'puzzleIsland'	# API details stored in file with this name
 keyfile = 'key_words.txt'	# Search terms stored in file with this name
-historyFile = 'postHistory.log'	# This program's posts recorded in file with this name
+postHistory = 'postHistory.log'	# This program's posts recorded in file with this name
 messageFile = 'messages.txt'	# Your responses are retrieved from here
 
 # Default search terms & messages if none are set in keyFile or messageFile above
@@ -69,7 +69,7 @@ def readKeywords():
 
 def readMessage():
 # Reads preset tweets from message.txt
-	if os.path.exists(historyFile):
+	if os.path.exists(messageFile):
 		# Read messages
 		if DEBUG:
 			print 'DEBUG: Loading messages'
@@ -142,16 +142,16 @@ def respond(tweet, message):
 # Posts *message* to the owner of *tweet*
 #	print '***%s' % tweet
 	if tweet != []:
-		print '***%s' % tweet[0]
-		name = tweet[0]['screen_name']
-		text = tweet[0]['text']
+		data = extract(tweet)
+		name = data[0]
+		text = data[1]
 
 		myPost = "%s %s" % (name, message)
 		if DEBUG:
 			print 'DEBUG: Composing response'
 	
 		if record(name, text, myPost) == True:
-#			post(myPost)
+			post(myPost)
 			print 'POST PLACEHOLDER'
 		else:
 			if DEBUG:
@@ -160,6 +160,14 @@ def respond(tweet, message):
 
 	else:
 		print 'No hits'
+
+def extract(tweet):
+# Extract useful data from tweet dictionary
+	dictionary = tweet[0]
+	text = dictionary['text']
+	userPortion = dictionary['user'] # User details are in a sub-dictionary named 'user'
+	name = userPortion['screen_name']
+	return (name, text)
 
 def post(message):
 # Post preset tweet online
@@ -172,7 +180,7 @@ def post(message):
 def record(customer, theirPost, myPost):
 # Makes a note of each tweet caught & what was sent in return 
 # RETURNS True IF THIS CUSTOMER HASN'T BEEN CONTACTED BEFORE
-	if os.path.exists(historyFile):
+	if os.path.exists(postHistory):
 		# Read all post history
 		if DEBUG:
 			print 'DEBUG: Loading post history'
@@ -188,7 +196,7 @@ def record(customer, theirPost, myPost):
 		else:
 			# Never contacted this customer before, so save their details
 			historyFile = open(postHistory, 'a', 0)
-			historyFile.write('%s|%s|%s\n' % customer, theirPost, myPost)
+			historyFile.write('%s|%s|%s\n' % (customer, theirPost, myPost))
 			historyFile.close()	
 			if DEBUG:
 				print "DEBUG: Added record of %s's tweet to post history" % customer			
@@ -198,7 +206,7 @@ def record(customer, theirPost, myPost):
 		if DEBUG:
 			print 'DEBUG: Creating post history log'
 		newFile = open(postHistory, 'w', 0)
-		newFile.write('%s|%s|%s\n' % customer, theirPost, myPost)
+		newFile.write('%s|%s|%s\n' % (customer, theirPost, myPost))
 		newFile.close()
 		if DEBUG:
 				print "DEBUG: Added record of %s's tweet to post history" % customer
