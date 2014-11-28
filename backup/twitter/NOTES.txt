@@ -1,0 +1,8 @@
+bot.py finds tweets & extracts the text & username as it should.
+
+However, it's tweets don't seem to appear on twitter.
+
+It also posts all messages to every hit.
+
+And I need to add a leading '@' before the username of the recipient.
+
