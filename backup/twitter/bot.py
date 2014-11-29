@@ -7,8 +7,9 @@
 import twitter
 import time
 import os
+import string # Used to filter non-ASCII characters from tweets
 
-DEBUG = True	# Console outputs will appear if set to True
+DEBUG = False	# Console outputs will appear if set to True
 interval = 1	# Time between twitter scans (minutes)
 
 account = 'puzzleIsland'	# API details stored in file with this name
@@ -100,63 +101,60 @@ def matchPosts():
 		postDictionary[keywords[x]] = messages[x]
 		if DEBUG:
 			print postDictionary[keywords[x]]
-#	postDictionary = {
-#			'key1': 'value1',
-#			'key2': 'value2'
-#			}
 	return postDictionary
 
 # ---------------------------------------------------------------------------------------
 # THESE BITS ACTUALLY INTERRACT WITH TWITTER
-def scanOLD():
-	# Scan for tweets containing the keywords
-	keywords = readKeywords()
-	hits = []
-	print 'Scanning...'
-	for word in keywords:
-		try:
-			print 'Keyword %s' % word
-			hits.append(twitter.read_tweet(account, word))
-		except:
-			print'E1'
-
-	print '%s tweets found' % len(hits)
-	return hits
-
 def scan():
 	postDictionary = matchPosts()
 	hits = []
-	if DEBUG:
-		print 'DEBUG: Searching Twitter'
 	for keyword, message in postDictionary.items():
-		if DEBUG:
-			print keyword, message
 		# Search for tweets containing the keyword
+		print """ 
+===========================================
+SEARCH TERM:
+%s""" % keyword
+
 		hits.append(twitter.read_tweet(account, keyword)) 
 		for hit in hits:
+#			print '%s\n%s' % (hit, message)
 			# Pass our response message to respond()
 			respond(hit, message) 
 	return hits
 
 def respond(tweet, message):
 # Posts *message* to the owner of *tweet*
-#	print '***%s' % tweet
 	if tweet != []:
 		data = extract(tweet)
 		name = data[0]
 		text = data[1]
 
-		myPost = "%s %s" % (name, message)
+		# Remove emoji & non-roman characters
+		text = filter(lambda x: x in string.printable, text)
+
+		# Remove any empty lines that confuse the history check
+		text = text.rstrip('\n')
+
+		myPost = "@%s %s" % (name, message)
 		if DEBUG:
 			print 'DEBUG: Composing response'
 	
 		if record(name, text, myPost) == True:
-			post(myPost)
-			print 'POST PLACEHOLDER'
+			print """ 
+TWEET FOUND:
+-------------------------------------------
+%s
+%s
+-------------------------------------------
+RESPONSE SENT:
+-------------------------------------------
+%s
+-------------------------------------------
+===========================================""" % (name, text, myPost)
+
+#			post(myPost)
 		else:
-			if DEBUG:
-				print 'DEBUG: %s has been contacted before, ignoring their tweet:\n %s' % (name, text)
-				print
+			print '%s has been contacted before, ignoring their tweet:\n %s' % (name, text)
 
 	else:
 		print 'No hits'
@@ -188,19 +186,22 @@ def record(customer, theirPost, myPost):
 		history = historyFile.read()
 		historyFile.close()
 		history = history.split('\n')
-		if customer in history:
-			if DEBUG:
-				print 'DEBUG: %s found in post history' % customer
-			# We've tweeted at this customer before, ignore their tweet
-			return False
-		else:
-			# Never contacted this customer before, so save their details
-			historyFile = open(postHistory, 'a', 0)
-			historyFile.write('%s|%s|%s\n' % (customer, theirPost, myPost))
-			historyFile.close()	
-			if DEBUG:
-				print "DEBUG: Added record of %s's tweet to post history" % customer			
-			return True
+
+		for line in history:
+			logEntry = line.split('|')
+			if customer in logEntry:
+				if DEBUG:
+					print 'DEBUG: %s found in post history' % customer
+				# We've tweeted at this customer before, ignore their tweet
+				return False
+			else:
+				# Never contacted this customer before, so save their details
+				historyFile = open(postHistory, 'a', 0)
+				historyFile.write('%s|%s|%s\n' % (customer, theirPost, myPost))
+				historyFile.close()	
+				if DEBUG:
+					print "DEBUG: Added record of %s's tweet to post history" % customer			
+				return True
 	else:
 		# No history file so create a new one with this first tweet included
 		if DEBUG:
@@ -228,9 +229,7 @@ def main():
 
 	while True:
 		hits = scan()
-		if hits[0] != []:
-			for hit in hits:
-				print "%s\n%s\n" % (hit['screen_ name'], hit['text'])
+		print 'Sleeping for %s min' % interval
 		time.sleep(interval*60)
 			
 if __name__ == '__main__':
