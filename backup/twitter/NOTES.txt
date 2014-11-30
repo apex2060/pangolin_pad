@@ -1,6 +1,5 @@
 bot.py finds tweets & extracts the text & username as it should.
 
 Bugs:
-It  posts all messages to every hit.
 New lines within a single tweet (as is quite common with arabic language tweets) confuse the
-history logging
+history logging & cause it to spam those users.
