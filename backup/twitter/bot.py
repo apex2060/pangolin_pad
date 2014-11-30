@@ -55,7 +55,7 @@ def readKeywords():
 		readFile.close()
 
 		keywords = keywords.split('\n')
-		 # Reading from a file adds an empty line, which we don't want in the list
+		# Reading from a file adds an empty line, which we don't want in the list
 		keywords.pop()
 		return keywords
 	else:
@@ -116,10 +116,14 @@ SEARCH TERM:
 %s""" % keyword
 
 		hits.append(twitter.read_tweet(account, keyword)) 
+		print len(hits)
 		for hit in hits:
 #			print '%s\n%s' % (hit, message)
 			# Pass our response message to respond()
 			respond(hit, message) 
+		# Each iteration of the dictionary appended the next keword's hits to
+		# the list. So wipe the hit list after each loop:
+		hits = []
 	return hits
 
 def respond(tweet, message):
@@ -129,11 +133,6 @@ def respond(tweet, message):
 		name = data[0]
 		text = data[1]
 
-		# Remove emoji & non-roman characters
-		text = filter(lambda x: x in string.printable, text)
-
-		# Remove any empty lines that confuse the history check
-		text = text.rstrip('\n')
 
 		myPost = "@%s %s" % (name, message)
 		if DEBUG:
@@ -149,8 +148,7 @@ TWEET FOUND:
 RESPONSE SENT:
 -------------------------------------------
 %s
--------------------------------------------
-===========================================""" % (name, text, myPost)
+-------------------------------------------"""% (name, text, myPost)
 
 #			post(myPost)
 		else:
@@ -162,9 +160,16 @@ RESPONSE SENT:
 def extract(tweet):
 # Extract useful data from tweet dictionary
 	dictionary = tweet[0]
+
 	text = dictionary['text']
+	# Remove emoji & non-roman characters
+	text = filter(lambda x: x in string.printable, text)
+	# Remove any empty lines that confuse the history check
+	text = text.replace('\n', '  ')
+
 	userPortion = dictionary['user'] # User details are in a sub-dictionary named 'user'
 	name = userPortion['screen_name']
+
 	return (name, text)
 
 def post(message):
@@ -229,6 +234,7 @@ def main():
 
 	while True:
 		hits = scan()
+		print '==========================================='
 		print 'Sleeping for %s min' % interval
 		time.sleep(interval*60)
 			
