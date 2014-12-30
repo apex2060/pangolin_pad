@@ -12,9 +12,9 @@ import string # Used to filter non-ASCII characters from tweets
 DEBUG = False	# Console outputs will appear if set to True
 interval = 1	# Time between twitter scans (minutes)
 
-account = 'puzzleIsland'	# API details stored in file with this name
+account = 'DATA/puzzleIsland'	# API details stored in file with this name
 keyfile = 'key_words.txt'	# Search terms stored in file with this name
-postHistory = 'postHistory.log'	# This program's posts recorded in file with this name
+postHistory = 'DATA/postHistory.log'	# This program's posts recorded in file with this name
 messageFile = 'messages.txt'	# Your responses are retrieved from here
 
 # Default search terms & messages if none are set in keyFile or messageFile above
