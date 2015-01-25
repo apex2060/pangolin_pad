@@ -1,152 +1,240 @@
-#!usr/bin/python
-
-import os
-import sys
 import time
 import subprocess
+import os
+import sys
 import Adafruit_CharLCD as LCD
 
 programA = '/home/pi/jam/time/timelapse.py'
-programB = '/home/pi/Programs/LCD/blank.py'
+programB = '/compile.py'
 
 # Initialize the LCD using the pins
 lcd = LCD.Adafruit_CharLCDPlate()
 
-def quit(nill):
-# Headless program-exit functionality
-	localButtons = ( (LCD.SELECT, 'Back' ),
-	            (LCD.LEFT,   'QUIT' ),
-	            (LCD.UP,     'Back' ),
-	            (LCD.DOWN,   'Back' ),
-	            (LCD.RIGHT,  'SHUTDOWN' ) )
+lcd.set_color(1,1,1)
 
-	lcd.message('< QUIT\n      SHUTDOWN >')
-	loop = True
-	while loop == True:
-	        # Loop through each button and check if it is pressed.
-	        for button in localButtons:
-	                if lcd.is_pressed(button[0]):
-	                        # Button is pressed, change the message and backlight.
-	                        lcd.clear()
-				time.sleep(0.5)	
-				if button[1] == 'QUIT':
-					lcd.clear()
-					lcd.set_color(0,0,0)
-					sys.exit()
-				elif button[1] == 'SHUTDOWN':
-					os.system('sudo halt')
-					lcd.message('Shutting down...')
-					lcd.clear()
-					lcd.set_color(0,0,0)
-				else:
-					loop = False
+menuArray = ['Run_program', 'Settings', 'IP', 'Exit_menu', 'Shutdown']
+lastItem = len(menuArray) -1
+topLine = 0
+botLine = 1
+
+def menu():
+# Scrollable menu
+	buttons = ( (LCD.SELECT, 'Select', select ),
+	            (LCD.LEFT,   'Left',   null   ),
+	            (LCD.UP,     'Up',     up     ),
+	            (LCD.DOWN,   'Down',   down   ),
+	            (LCD.RIGHT,  'Right',  null   ) )
+
+	try:
+	        print 'Press Ctrl-C to quit.'
+	        while True:
+			
+			lcd.message('  %s\n> %s\n' % (menuArray[topLine], menuArray[botLine]))
+	                # Loop through each button and check if it is pressed.
+	                for button in buttons:
+	                        if lcd.is_pressed(button[0]):
+					button[2]() # Call the fucntion named in the button list
+	                                time.sleep(0.8)
+				        lcd.clear()
+
+
+	except KeyboardInterrupt:
+	        lcd.clear()
+	        lcd.set_color(0,0,0)
+
+def null():
+# Nothing happens when Left or Right are pressed
+	pass
+
+def select():
+# Run module named in the array
+	funcArray[botLine]()
+
+def up():
+# Scroll up through items
+	global topLine
+	global botLine
+
+	topLine = topLine -1
+	if topLine <0:
+		topLine = lastItem
+	botLine = botLine -1
+	if botLine <0:
+		botLine = lastItem
+
+def down():
+# Scroll down through items
+	global topLine
+	global botLine
+
+	topLine = topLine +1
+	if topLine > lastItem:
+		topLine = 0
+	botLine = botLine +1
+	if botLine > lastItem:
+		botLine = 0
+
+
+# --- OPTIONS THAT EXECUTE WHEN SELECTED ---
+
+def program():
 	lcd.clear()
-	lcd.message('HEADLESS MENU')
+	buttons = ( (LCD.SELECT, 'Select'),
+	            (LCD.LEFT,   'Left'  ),
+	            (LCD.UP,     'Up'    ),
+	            (LCD.DOWN,   'Down'  ),
+	            (LCD.RIGHT,  'Right' ) )
 
-def myIP(delay):
+	selection = 0
+	loop = True
+	try:
+	        print 'Press Ctrl-C to quit.'
+	        while loop == True:
+			lcd.message('Start Timelapse?\n')
+			if selection == 0:
+				lcd.message('> Yes   |     No')
+			elif selection == 1:
+				lcd.message('  Yes   |   > No')
+
+	                # Loop through each button and check if it is pressed.
+	                for button in buttons:
+	                        if lcd.is_pressed(button[0]):
+					if button[1] == 'Left':
+						selection = 0
+					if button[1] == 'Right':
+						selection = 1
+					if button[1] == 'Select':
+						if selection == 0:
+							os.system('sudo python /home/pi/jam/time/timelapse.py')
+						else:
+							loop = False
+	                                time.sleep(0.8)
+				        lcd.clear()
+	except KeyboardInterrupt:
+	        lcd.clear()
+	        lcd.set_color(0,0,0)
+
+
+def settings():
+	lcd.clear()
+	lcd.message('Change timelapse\nsettings')
+	time.sleep(1)
+	os.system('sudo python /home/pi/jam/time/setup.py')
+	lcd.clear()
+
+def ip():
 # Displays current IP address for 5 seconds
-	output = subprocess.check_output("sudo hostname -I", shell=True)
-	lcd.message(output)
-	for n in range(delay +1):
-		x = delay - n
-		lcd.message('\n%s' % x)
-		time.sleep(1)
-
 	lcd.clear()
-	lcd.message('HEADLESS MENU')
+        output = subprocess.check_output("sudo hostname -I", shell=True)
+        lcd.message('IP: %s' % output)
+	
+	buttons = ( (LCD.SELECT, 'Select'),
+	            (LCD.LEFT,   'Left'  ),
+	            (LCD.UP,     'Up'    ),
+	            (LCD.DOWN,   'Down'  ),
+	            (LCD.RIGHT,  'Right' ) )
 
-def run(program):
-# Headless run program functionality
-	localButtons = ( (LCD.SELECT, 'Back' ),
-	            (LCD.LEFT,   'RUN' ),
-	            (LCD.UP,     'Back' ),
-	            (LCD.DOWN,   'Back' ),
-	            (LCD.RIGHT,  'Cancel' ) )
-
-
-# Runs the specified program
-	name = program.split('/')
-	lcd.clear()
-	lcd.message('%s' % name[-1])
-
-	lcd.message('\n< RUN | CANCEL >')
 	loop = True
-	while loop == True:
-	        # Loop through each button and check if it is pressed.
-	        for button in localButtons:
-	                if lcd.is_pressed(button[0]):
-	                        # Button is pressed, change the message and start program.
-	                        lcd.clear()
-				time.sleep(0.5)	
-				if button[1] == 'RUN':
-					lcd.clear()
-					lcd.message('Running:\n%s' % name)
-					os.system('sudo python %s' % program)
-					lcd.clear()
-					lcd.message('Running:\nDone!')
-					time.sleep(2)
-
-				loop = False
+	lcd.message('\n> Main menu')
+	try:
+	        while loop == True:
+			time.sleep(0.5)
+	                # Loop through each button and check if it is pressed.
+	                for button in buttons:
+	                        if lcd.is_pressed(button[0]):
+					if button[1] == 'Select':
+						loop = False
+					        lcd.clear()
+					time.sleep(0.8)
+	except KeyboardInterrupt:
+	        lcd.clear()
+	        lcd.set_color(0,0,0)
 	
 
+        lcd.clear()
+
+def exit():
 	lcd.clear()
-	lcd.set_color(1,1,1)
-	lcd.message('HEADLESS MENU')
+	buttons = ( (LCD.SELECT, 'Select'),
+	            (LCD.LEFT,   'Left'  ),
+	            (LCD.UP,     'Up'    ),
+	            (LCD.DOWN,   'Down'  ),
+	            (LCD.RIGHT,  'Right' ) )
+
+	selection = 0
+	loop = True
+	try:
+	        while loop == True:
+			lcd.message('Exit menu?\n')
+			if selection == 0:
+				lcd.message('> Yes   |     No')
+			elif selection == 1:
+				lcd.message('  Yes   |   > No')
+
+	                # Loop through each button and check if it is pressed.
+	                for button in buttons:
+	                        if lcd.is_pressed(button[0]):
+					if button[1] == 'Left':
+						selection = 0
+					if button[1] == 'Right':
+						selection = 1
+					if button[1] == 'Select':
+						if selection == 0:
+							lcd.clear()
+							lcd.set_color(0,0,0)
+							sys.exit()
+						else:
+							loop = False
+	                                time.sleep(0.8)
+				        lcd.clear()
+	except KeyboardInterrupt:
+	        lcd.clear()
+	        lcd.set_color(0,0,0)
 
 
-def blank(delay):
-	for n in range(delay +1):
-		x = delay - n
-		lcd.message('HEADLESS MENU\nEmpty slot     %s' % x)
-		time.sleep(1)
 
+def shutdown():
 	lcd.clear()
-	lcd.message('HEADLESS MENU')
+	buttons = ( (LCD.SELECT, 'Select'),
+	            (LCD.LEFT,   'Left'  ),
+	            (LCD.UP,     'Up'    ),
+	            (LCD.DOWN,   'Down'  ),
+	            (LCD.RIGHT,  'Right' ) )
 
-def info(delay):
-	for button in buttons:
-		direction = button[0]
-		if direction == 0:
-			direction = 'Select'
-		elif direction == 4:
-			direction = 'Left'
-		elif direction == 3:
-			direction = 'Up'
-		elif direction == 2:
-			direction = 'Down'
-		else:
-			direction = 'Right'
+	selection = 0
+	loop = True
+	try:
+	        while loop == True:
+			lcd.message('Shutdown?\n')
+			if selection == 0:
+				lcd.message('> Yes   |     No')
+			elif selection == 1:
+				lcd.message('  Yes   |   > No')
 
-		funct = button[1][1:]
-		if funct == "Run program":
-			funct = button[3].split('/')
-			funct = funct[-1]
-		lcd.message('%s:\n%s' % (direction, funct))
-		time.sleep(delay)
-		lcd.clear()
-	lcd.message('HEADLESS MENU')
+	                # Loop through each button and check if it is pressed.
+	                for button in buttons:
+	                        if lcd.is_pressed(button[0]):
+					if button[1] == 'Left':
+						selection = 0
+					if button[1] == 'Right':
+						selection = 1
+					if button[1] == 'Select':
+						if selection == 0:
+							os.system('sudo halt')
+						else:
+							loop = False
+	                                time.sleep(0.8)
+				        lcd.clear()
+	except KeyboardInterrupt:
+	        lcd.clear()
+	        lcd.set_color(0,0,0)
 
-# Make list of button value, text, and associated action.
-	     # button    display          command    parameter
-buttons = ( (LCD.SELECT, '\nQuit'        , quit    , 0),
-            (LCD.LEFT,   '\nIP Address'  , myIP    , 5),
-            (LCD.UP,     '\nRun program' , run     , programA),
-            (LCD.DOWN,   '\nRun program' , run     , programB),
-            (LCD.RIGHT,  '\nInfo'        , info    , 2 ) )
 
-try:
-	print 'Press Ctrl-C to quit.'
-	lcd.message('HEADLESS MENU')
-	while True:
-	        # Loop through each button and check if it is pressed.
-	        for button in buttons:
-	                if lcd.is_pressed(button[0]):
-	                        # Button is pressed, change the message and backlight.
-	                        lcd.message(button[1])
-				time.sleep(0.8)
-	                        lcd.clear()
-				button[2](button[3]) # Calls the function named in button list
+	
 
-except KeyboardInterrupt:
-	lcd.clear()
-	lcd.set_color(0,0,0)
+# List of the above functions
+funcArray = [program, settings, ip, exit, shutdown]
+
+
+if __name__ == '__main__':
+	menu()
