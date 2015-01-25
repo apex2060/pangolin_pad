@@ -1,9 +1,7 @@
 #!/usr/bin/python
 
-# COTSWOLD JAM TIME-LAPSE DEMO
-# This is a simple python script that automates the raspistill- & MEncoder-based time-lapse process
-# presented at the Nov '14 Cotswold Raspberry Jam.
-# www.pangolinpad.yolasite.com
+# HEADLESS TIMELAPSE
+# Intended for use with the LCD screen & associated menu.py script
 
 # This is the simplest way I've found of running linux commands in python.
 # You'll see it below as os.system('some sort of command'):
@@ -17,11 +15,20 @@ import LCD
 # The following 4 variables can be set to whatever you like:
 videoName = '/home/pi/jam/time/timelapse'	# The name given to the final video
 filename = 'myImage'	# Every timelapse frame's name wil start with this.
-interval = 1000		# Time (in milliseconds) between capturing each frame (1 sec = 1,000 millisec)
-#duration = 1800000		# Time (in milliseconds) that the timelapse will capture for (1 hr = 360,000 millisec)
-duration = 5000
-
+settingsFile = '/home/pi/jam/time/settings.txt' # Interval & duration stored here
 delete = True		# If this is set to True, the program will delete all the frames once the video is complete
+
+def getSettings():
+# Load duration & interval settings from file
+	settings = open(settingsFile, 'r')
+	setList = settings.read()
+	setList = setList.splitlines()
+	duration = setList[1].split(':')
+	duration = duration[1]
+	interval = setList[0].split(':')
+	interval = interval[1]
+	mySettings = [int(interval), int(duration)]
+	return mySettings
 
 def capture(interval, duration):
 	# This captures the timelapse frames.
@@ -52,11 +59,12 @@ def mencoder():
 def main():
 	# This is the main bit of the program that runs all of the above in the correct order
 	# It also prints helpful messages at each stage of the process or error messages if something goes wrong
-	print 'Capturing... \nInterval = %s ms \nDuration = %s ms \n' % (interval, duration)
+	mySettings = getSettings()
+	print 'Capturing... \nInterval = %s ms \nDuration = %s ms \n' % (mySettings[0], mySettings[1])
 	LCD.colour([0,1,0])
-	LCD.display("TIMELAPSE.PY\nI:%ss D:%ss" % (interval/1000, duration/1000))
+	LCD.display("TIMELAPSE.PY\nI:%ss D:%ss" % (mySettings[0]/1000, mySettings[1]/1000))
 
-	if capture(interval,duration) == True:
+	if capture(mySettings[0], mySettings[1]) == True:
 		print 'Capture complete'
 		LCD.display("TIMELAPSE.PY\nCompiling video")
 		list()
@@ -82,3 +90,4 @@ def main():
 
 # Finally, this bit sets off everything contained in the main() section above & starts the program:
 main()
+#getSettings()
