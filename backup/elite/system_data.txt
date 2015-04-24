@@ -1,0 +1,63 @@
+
+Save Data
+{
+
+	Eravate
+	{
+
+		Cleve Hub
+		{
+			"Algae" = 5
+			"Aluminium" = 6
+			"Animal Meat" = 4
+			"Auto-Fabricators" = 6
+			"Basic Medicines" = 0
+			"Beer" = 5
+			"Beryllium" = 6
+			"Biowaste" = 1
+			"Clothing" = 1
+			"Cobalt" = 5
+			"Coffee" = 4
+			"Computer Components" = 1
+			"Consumer Tech" = 6
+			"Copper" = 5
+
+			Notes
+			{
+				"This is a note - GM"
+			}
+		}
+
+		StationB
+		{
+			"Cobalt" = 1
+			"Crop Harvesters" = 6
+			"Indium" = 4
+			"Superconductors" = 0
+			"Tea" = 5
+
+			Notes
+			{
+			}
+		}
+	}
+
+	Lave
+	{
+
+		StationA
+		{
+			"Animal Meat" = 6
+			"Energy Drinks" = 2
+			"Narcotics" = 0
+			"Pesticides" = 1
+			"Plastics" = 6
+			"Semiconductors" = 4
+
+			Notes
+			{
+				"Another note - GM"
+			}
+		}
+	}
+}
