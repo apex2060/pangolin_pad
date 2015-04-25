@@ -33,7 +33,7 @@ def load_file(filename):
         cleanList = []
         for line in contentList:
                 cleanLine = re.sub(r'[\n\t]', '', line) # Remove tabs & newlines
-                if cleanLine <> '' and cleanLine <> ' ':
+                if cleanLine <> '' and cleanLine <> ' ': # Excluse empty list items
                         cleanList.append(cleanLine)
 
         return cleanList
@@ -57,50 +57,41 @@ def compare_files(filename):
 # ----- STRING MANIPULATIONS -----
 def createDict(data):
         # Create an easily comparable dictionary from the loaded file data
-        systemDict = {} # Create dictionary to hold all data
         data = data[3:] # Remove 1st 3 items ['\xef\xbb\xbf', 'Save Data', '{']
 
         temp = [] # Temporary list to hold commodity info
+        comparisonDict = {} # Final dictionary of info
+        lastSystem = data[0] # Used to store the name of the last recorded system (initially the 1st item in the data list)
+        countLoop = -1 # Used to count the no. of loops
+        countBracket = 0 # Used to count the no. of closing brackets (})
         for item in data:
+                countLoop = countLoop +1
                 if item == '}':
-                        # End of section, save data to dictionary:
-                        try:
-                                #           System  :  [StationA, [commodity1, commodity2, ...], ...]
-                                systemDict[temp[0]] = temp[2:]
+                        countBracket = countBracket +1
 
-                        except:
-                                # Multiple '}' in succession
-                                print '}'
-                        temp = [] # Clear temporary storage for next section
+                        if countBracket == 1: # End of station notes
+                                if lastSystem in temp: temp.remove(lastSystem) # We don't need the system in the key & the item
+                                # Dictionary keyts must eb unique, so if a system has multiple stations, save all to singe System key:
+                                if lastSystem in comparisonDict:
+                                        comparisonDict[lastSystem] = [comparisonDict[lastSystem], temp] # Retains original commodity data & adds the new
+                                else:
+                                        comparisonDict[lastSystem] = temp # Save section data into dictionary
+                                temp = [] # Empty temporary storage
+
+                        elif countBracket == 2: # End of station
+                                lastSystem = compare[countLoop][0] ## THIS NEEDS FIXING
+
+                        elif countBracket == 3: # End of system
+                                countBracket = 0
                 else:
                         temp.append(item)
 
-        # DEBUG
-        print systemDict.items()
-
-        return systemDict
+        return comparisonDict
                         
-##### NOTES
-## The bit above works if there's only 1 station per system.
-## To cope with multiple stations, I need to count the no. of '}', for example:
-
-## System1
-## {
-## StationA
-## {
-## [Commodities]
-## Notes
-## } (1 - End of Notes)
-## } (2 - End of StationA)
-## StationB
-## {
-## Commodities etc. etc.
-## Notes
-## } (1 - End of Notes)
-## } (2 - End of StationB)
-## } (3 - End of System1)
-## System2
-## { etc.
+# #### NOTES ####
+# 
+# 
+# #### ----- ####
 
 # ----- GUI OPERATIONS -----
 def close_program():
