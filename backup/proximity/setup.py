@@ -15,7 +15,7 @@ def scan():
 # Run tshark in the background, saving output to nohup.out
 	randTime = random.randint(12,21) # Irregular wait times in case accidental sync with nearby signals mean we miss them
 	print randTime
-	os.system("sudo tshark -i mon0 -a duration:%s subtype probereq > scan.out &" % randTime)
+	os.system("sudo tshark -i wlan0mon -a duration:%s subtype probereq > scan.out &" % randTime)
 	time.sleep(randTime)
 	return True
 
