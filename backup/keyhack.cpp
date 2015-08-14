@@ -33,6 +33,13 @@ void loop()
     Keyboard.println("cmd");
     delay(1500);
 
+    // The image will be saved in a newly created 'bk' folder so that the full-screen image viewer doesn't slideshow 
+    // through all the images on the Desktop & ruin the 'effect'.
+    Serial.println("Make directory");
+    Keyboard.println("cd Desktop");
+    Keyboard.println("md bk");
+    delay(250);
+
     Serial.println("Download image");
     // The pro micro seems to appear as a US keyboard and so @ = " and vice-versa
     //Keyboard.println("powershell -command @& { iwr http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg -OutFile 'Desktop/image.jpg' }@");
@@ -42,16 +49,15 @@ void loop()
     delay(500);
     Keyboard.println("$WebClient = New-Object System.Net.WebClient");
     delay(200);
-    Keyboard.println("$WebClient.DownloadFile('http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg','Desktop/bk/image.jpg')");
+    Keyboard.println("$WebClient.DownloadFile('http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg','bk/image.jpg')");
     
     delay(5000); // Wait for download to complete
     Keyboard.println("exit"); // Exit powershell
     delay(500);
 
-    // The image was saved in a newly created 'bk' folder so that the full-screen image viewer didn't slideshow 
-    // through all the images on the Desktop & ruin the 'effect'.
+    
     Serial.println("Open image");
-    Keyboard.println("cd Desktop/bk");
+    Keyboard.println("cd bk"); // Navigate to the image's location
     Keyboard.println("image.jpg");
 
     delay(1000); // Wait for default image viewer to launch
