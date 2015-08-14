@@ -24,14 +24,14 @@ void loop()
     Serial.println("Open Start menu");
     Keyboard.press(KEY_LEFT_CTRL);
     Keyboard.press(KEY_ESC);
-    delay(500);
+    delay(250);
     Keyboard.releaseAll();
     
     delay(750);
 
     Serial.println("Open command prompt");
     Keyboard.println("cmd");
-    delay(1000);
+    delay(1500);
 
     Serial.println("Download image");
     // The pro micro seems to appear as a US keyboard and so @ = " and vice-versa
@@ -39,19 +39,26 @@ void loop()
     
     // iwr wasn't introduced until Powershell v3.0 (my targets have v2.0) so use the old New-Object method to download the image:
     Keyboard.println("powershell");
+    delay(500);
     Keyboard.println("$WebClient = New-Object System.Net.WebClient");
-    Keyboard.println("$WebClient.DownloadFile('http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg','Desktop/image.jpg')");
+    delay(200);
+    Keyboard.println("$WebClient.DownloadFile('http://www.quickmeme.com/img/e0/e08438c84e36715ed30df393db08392ab9deefd0b7fb1d9ebaade9e549b18314.jpg','Desktop/bk/image.jpg')");
     
-    delay(1000); // Wait for download to complete
-    
-    Serial.println("Open image");
-    Keyboard.println("Desktop/image.jpg");
+    delay(5000); // Wait for download to complete
+    Keyboard.println("exit"); // Exit powershell
+    delay(500);
 
-    delay(500); // Wait for default image viewer to launch
+    // The image was saved in a newly created 'bk' folder so that the full-screen image viewer didn't slideshow 
+    // through all the images on the Desktop & ruin the 'effect'.
+    Serial.println("Open image");
+    Keyboard.println("cd Desktop/bk");
+    Keyboard.println("image.jpg");
+
+    delay(1000); // Wait for default image viewer to launch
 
     Serial.println("Display full-screen");
     Keyboard.press(KEY_F11);
-    delay(500);
+    delay(250);
     Keyboard.releaseAll();
     
     RXLED0; // Turn off orange LED when the device is done sending instructions
