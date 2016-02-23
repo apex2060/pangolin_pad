@@ -55,11 +55,12 @@ def main():
 		try:
 			img = captureImage(height, width, filename)
 			faces = detect(img) # chnage to detect(img) to focus on faces (better for close-up)
-			for f in faces:
-				facelayer = draw(f, img)
-				# The following line adds the rectangle made by draw() to the image's drawing layer
-				img.addDrawingLayer(facelayer)
-	
+			if faces is not None:
+				for f in faces:
+					facelayer = draw(f, img)
+					# The following line adds the rectangle made by draw() to the image's drawing layer
+					img.addDrawingLayer(facelayer)
+		
 			# This adds the drawing layer over the top of the image
 			img.applyLayers()
 			# Display the image & its layers on screen
