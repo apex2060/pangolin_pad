@@ -22,9 +22,9 @@ import datetime
 import subprocess
 
 # Change your settings here:
-recipient = 'rpitwitter@outlook.com' 	# Specify where to send the IP email
-sender = 'gmurden22@gmail.com' 		# Your gmail email address
-password = 'youtube2211'		# Your gmail password
+recipient = '!!!' 	# Specify where to send the IP email
+sender = '!!!' 		# Your gmail email address
+password = '!!!'		# Your gmail password
 
 # Storing the password here in plain text is a bit of a security risk, but I can't find
 # a way around it whilst still allowing the program to run at startup. You may want to
