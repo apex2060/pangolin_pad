@@ -1,16 +1,17 @@
-import requests
-import re
-import struct
-import json
-import argparse
-import pokemon_pb2
-import time
-import os
+import requests     # To interface with the servers
+import re           # To process sever data
+import struct       # To interface with the servers (?)
+import json         # To load pokemon data
+import argparse     # To interface with the servers
+import pokemon_pb2  # Unofficial Pokemon Go API
+import time         # Time delays to throttle server queries
+import os           # To refresh the screen between displaying nearby pokemon
 
-from google.protobuf.internal import encoder
+from google.protobuf.internal import encoder # Location handling
 
-from datetime import datetime
-from geopy.geocoders import GoogleV3
+from datetime import datetime, timedelta # To display himan-readable time stamps
+
+from geopy.geocoders import GoogleV3 # Location handling
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from s2sphere import *
@@ -249,6 +250,10 @@ def loadSettings():
 
     return username, password, location
 
+def getExpTime(seconds):
+    now = datetime.now()
+    seconds = timedelta(seconds=seconds)
+    return now + seconds
 
 def main():
     defaultSettings = loadSettings()
@@ -291,14 +296,14 @@ def main():
         print('[+] Username: {}'.format(profile.profile.username))
 
         creation_time = datetime.fromtimestamp(int(profile.profile.creation_time)/1000)
-        print('[+] You are playing Pokemon Go since: {}'.format(
+        print('[+] You started playing Pokemon Go on: {}'.format(
             creation_time.strftime('%Y-%m-%d %H:%M:%S'),
         ))
 
         for curr in profile.profile.currency:
             print('[+] {}: {}'.format(curr.type, curr.amount))
     else:
-        print('[-] Ooops...')
+        print('[-] No response from server.')
 
     origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
     while True:
@@ -334,44 +339,57 @@ def main():
                 difflat = diff.lat().degrees
                 difflng = diff.lng().degrees
                 direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
+
+                # THIS ORIGINALLY PRINTED A SUMMARY OF THE CLOSEST POKEMON
                 #print("Within one step of %s (%sm %s from you):" % (other, int(origin.get_distance(other).radians * 6366468.241830914), direction))
-                #print "NEARBY:"
-                
                 #for poke in cell.NearbyPokemon:
                     #print('    (%s) %s' % (poke.PokedexNumber, pokemons[poke.PokedexNumber - 1]['Name']))
+        
+        # Clear screen between refreshes of the nearby pokemon list
         try:            
             os.system("cls") # Windows
         except:
             os.system("clear") # Linux
 
-
-        # THE visible LIST DISPLAYS ALL THE POKEMON IN THE AREA AS THEY ARE DETECTED
-        # NEED TO REMEMBER THESE & ONLY STOP DISPLAYING ONCE THEY HAVE EXPIRED
         print('')
-        print "Pokedex\tName\t\tDist\tDir\tExpires in"
-        print "-------\t----\t\t----\t---\t----------"
+        # THIS IS THE BIT THAT LISTS ALL NEARBY POKEMON
+
+        # I've se the program to display a table of pokemon on screen
+        print "Pokedex\tName\t\tDist\tDir\tExpires"
+        print "-------\t----\t\t----\t---\t-------"
+
         for poke in visible:
             other = LatLng.from_degrees(poke.Latitude, poke.Longitude)
             diff = other - origin
-            # print(diff)
             difflat = diff.lat().degrees
             difflng = diff.lng().degrees
             direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
 
+            ### USEFUL INFO ON LOCATED POKEMON
             num = poke.pokemon.PokemonId # pokedex number
             name = pokemons[poke.pokemon.PokemonId - 1]['Name'] # Fetched from pokemon.json file
-            distance = int(origin.get_distance(other).radians * 6366468.241830914) # In meters
-            time = poke.TimeTillHiddenMs / 1000 / 60 # minutes until disappearance
-            lat = poke.Latitude
-            lon = poke.Longitude
+            distance = int(origin.get_distance(other).radians * 6366468.241830914) # Distance from start lat/lon in meters
+            timeToExp = poke.TimeTillHiddenMs / 1000 / 60 # minutes until disappearance
+            expiresAt = getExpTime(poke.TimeTillHiddenMs / 1000).strftime("%H:%M:%S") # Time of disappearance
+            lat = poke.Latitude # Current pokemon location
+            lon = poke.Longitude # Current pokemon location
 
+            # This bit is just to make sure the long names fit nicely in the displayed output
             if len(name)<8:
                 extraTab = "\t"
             else:
                 extraTab = ""
 
-            print "{num}\t{name}\t{extraTab}{distance}m\t{direction}\t{time}min".format(num=num, name=name, extraTab=extraTab, distance=distance, direction=direction, time=time)
+            if timeToExp > 0: # Only display pokemon that haven't expired since they were found
+                print "{num}\t{name}\t{extraTab}{distance}m\t{direction}\t{expiresAt} ({timeToExp}min)".format(num=num, name=name, extraTab=extraTab, distance=distance, direction=direction, expiresAt=expiresAt, timeToExp=timeToExp)
 
+                # HERE IS WHERE YOU CAN DO FANCY STUFF WITH THE POKEMON DATA
+                # Suggestion:
+                #  Add these nearby pokemon to a database
+                #  Display the contents of the database
+                #  Delete from the database any pokemon whose expiresAt time has passed
+                #  This solves the issue of the nearby list only showing newly discovered pokemon (not all still in the area)
+                #  You could also make a permanent record of what pokemon have appeard & where to produce a heatmap
 
         print('')
         walk = getNeighbors()
@@ -380,4 +398,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #print loadSettings()
