@@ -16,6 +16,9 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from s2sphere import *
 
+import pokedex # Home-made pokemon storage database
+import alert # Home-made notification sender for interesting pokemon
+
 def encode(cellid):
     output = []
     encoder._VarintEncoder()(output.append, cellid)
@@ -50,6 +53,8 @@ COORDS_LONGITUDE = 0
 COORDS_ALTITUDE = 0
 FLOAT_LAT = 0
 FLOAT_LONG = 0
+
+origin = '' # Starting location
 
 def f2i(float):
   return struct.unpack('<Q', struct.pack('<d', float))[0]
@@ -305,96 +310,142 @@ def main():
     else:
         print('[-] No response from server.')
 
+    global origin
     origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
     while True:
         original_lat = FLOAT_LAT
         original_long = FLOAT_LONG
         parent = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)).parent(15)
 
-        h = heartbeat(api_endpoint, access_token, response)
-        hs = [h]
-        seen = set([])
-        for child in parent.children():
-            latlng = LatLng.from_point(Cell(child).get_center())
-            set_location_coords(latlng.lat().degrees, latlng.lng().degrees, 0)
-            hs.append(heartbeat(api_endpoint, access_token, response))
-        set_location_coords(original_lat, original_long, 0)
+        try:
+            h = heartbeat(api_endpoint, access_token, response)
+            hs = [h]
+            seen = set([])
+            for child in parent.children():
+                latlng = LatLng.from_point(Cell(child).get_center())
+                set_location_coords(latlng.lat().degrees, latlng.lng().degrees, 0)
+                hs.append(heartbeat(api_endpoint, access_token, response))
+            set_location_coords(original_lat, original_long, 0)
 
-        visible = []
+            visible = []
 
-        for hh in hs:
-            for cell in hh.cells:
-                for wild in cell.WildPokemon:
-                    hash = wild.SpawnPointId + ':' + str(wild.pokemon.PokemonId)
-                    if (hash not in seen):
-                        visible.append(wild)
-                        seen.add(hash)
+            for hh in hs:
+                for cell in hh.cells:
+                    for wild in cell.WildPokemon:
+                        hash = wild.SpawnPointId + ':' + str(wild.pokemon.PokemonId)
+                        if (hash not in seen):
+                            visible.append(wild)
+                            seen.add(hash)
 
-        print('')
-        for cell in h.cells:
-            if cell.NearbyPokemon:
-                other = LatLng.from_point(Cell(CellId(cell.S2CellId)).get_center())
+            print('')
+            for cell in h.cells:
+                if cell.NearbyPokemon:
+                    other = LatLng.from_point(Cell(CellId(cell.S2CellId)).get_center())
+                    diff = other - origin
+                    # print(diff)
+                    difflat = diff.lat().degrees
+                    difflng = diff.lng().degrees
+                    direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
+
+                    # THIS ORIGINALLY PRINTED A SUMMARY OF THE CLOSEST POKEMON
+                    #print("Within one step of %s (%sm %s from you):" % (other, int(origin.get_distance(other).radians * 6366468.241830914), direction))
+                    #for poke in cell.NearbyPokemon:
+                        #print('    (%s) %s' % (poke.PokedexNumber, pokemons[poke.PokedexNumber - 1]['Name']))
+            
+           
+
+            print('')
+            # THIS IS THE BIT THAT LISTS ALL NEARBY POKEMON
+
+            
+            for poke in visible:
+                other = LatLng.from_degrees(poke.Latitude, poke.Longitude)
                 diff = other - origin
-                # print(diff)
                 difflat = diff.lat().degrees
                 difflng = diff.lng().degrees
                 direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
 
-                # THIS ORIGINALLY PRINTED A SUMMARY OF THE CLOSEST POKEMON
-                #print("Within one step of %s (%sm %s from you):" % (other, int(origin.get_distance(other).radians * 6366468.241830914), direction))
-                #for poke in cell.NearbyPokemon:
-                    #print('    (%s) %s' % (poke.PokedexNumber, pokemons[poke.PokedexNumber - 1]['Name']))
+                ### USEFUL INFO ON LOCATED POKEMON
+                num = poke.pokemon.PokemonId # pokedex number
+                name = pokemons[poke.pokemon.PokemonId - 1]['Name'] # Fetched from pokemon.json file
+                distance = int(origin.get_distance(other).radians * 6366468.241830914) # Distance from start lat/lon in meters
+                timeToExp = poke.TimeTillHiddenMs / 1000 / 60 # minutes until disappearance
+                expiresAt = getExpTime(poke.TimeTillHiddenMs / 1000).strftime("%y-%m-%d %H:%M") # Time of disappearance
+                lat = poke.Latitude # Current pokemon location
+                lon = poke.Longitude # Current pokemon location
+
+                #################
+                # MY STUFF
+                if timeToExp > 0: # Only display pokemon that haven't expired since they were found
+                    
+                    pokedex.updateLocal(num, name, lat, lon, expiresAt)
+                    pokedex.saveHistory(num, name, lat, lon, args.location)
+                    alert.alert(num, name, lat, lon, expiresAt) # Send alert of interesting pokemon appearance
+
+            displayPokemon()
+
+            print('')
+            walk = getNeighbors()
+            next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
+            set_location_coords(next.lat().degrees, next.lng().degrees, 0)
+        except Exception, e:
+            print " [!] An error occurred:\n     {0}".format(e)
+
+def displayPokemon():
+    "Using the data stored in pokedex.db in the main() loop above, display nearby pokemon"
+    
+    # Clear screen between refreshes of the nearby pokemon list
+    try:            
+        os.system("cls") # Windows
+    except:
+        os.system("clear") # Linux
+
+    # I've se the program to display a table of pokemon on screen
+    print "\nPokedex\tName\t\tDist\tDir\tExpires"
+    print "-------\t----\t\t----\t---\t-------"
+
+    # This bit is just to make sure the long names fit nicely in the displayed output
+
+    nearby = [] # This list will hold formatted data for all nearby pokemon
+    localList = pokedex.getLocal()
+    # localList format:
+    #[ (NUM, NAME, LAT, LNG, EXPIRY), (NUM, NAME, LAT, LNG, EXPIRY), etc. ]
+    for pokemon in localList:
+        # Get basic info from database:
+        num = int(pokemon[0])
+        name = pokemon[1]
+        latitude = float(pokemon[2])
+        longitude = float(pokemon[3])
+        expiry = pokemon[4]
+
+        # Calculate distance & direction from coordinates:
+        other = LatLng.from_degrees(latitude, longitude)
+        diff = other - origin
+        difflat = diff.lat().degrees
+        difflng = diff.lng().degrees
         
-        # Clear screen between refreshes of the nearby pokemon list
-        try:            
-            os.system("cls") # Windows
-        except:
-            os.system("clear") # Linux
+        direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
+        distance = int(origin.get_distance(other).radians * 6366468.241830914) # Distance from start lat/lon in meters
 
-        print('')
-        # THIS IS THE BIT THAT LISTS ALL NEARBY POKEMON
+        nearby.append([num, name, latitude, longitude, distance, direction, expiry])
 
-        # I've se the program to display a table of pokemon on screen
-        print "Pokedex\tName\t\tDist\tDir\tExpires"
-        print "-------\t----\t\t----\t---\t-------"
+    # Sort the nearby list by distance
+    nearby.sort(key=lambda x: x[4])
+    for pokemon in nearby:
+        num = pokemon[0]
+        name = pokemon[1]
+        lat = pokemon[2]
+        lng = pokemon[3]
+        distance = pokemon[4]
+        direction = pokemon[5]
+        expiry = pokemon[6]
 
-        for poke in visible:
-            other = LatLng.from_degrees(poke.Latitude, poke.Longitude)
-            diff = other - origin
-            difflat = diff.lat().degrees
-            difflng = diff.lng().degrees
-            direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
+        if len(name)<8:
+            extraTab = "\t"
+        else:
+            extraTab = ""
 
-            ### USEFUL INFO ON LOCATED POKEMON
-            num = poke.pokemon.PokemonId # pokedex number
-            name = pokemons[poke.pokemon.PokemonId - 1]['Name'] # Fetched from pokemon.json file
-            distance = int(origin.get_distance(other).radians * 6366468.241830914) # Distance from start lat/lon in meters
-            timeToExp = poke.TimeTillHiddenMs / 1000 / 60 # minutes until disappearance
-            expiresAt = getExpTime(poke.TimeTillHiddenMs / 1000).strftime("%H:%M:%S") # Time of disappearance
-            lat = poke.Latitude # Current pokemon location
-            lon = poke.Longitude # Current pokemon location
-
-            # This bit is just to make sure the long names fit nicely in the displayed output
-            if len(name)<8:
-                extraTab = "\t"
-            else:
-                extraTab = ""
-
-            if timeToExp > 0: # Only display pokemon that haven't expired since they were found
-                print "{num}\t{name}\t{extraTab}{distance}m\t{direction}\t{expiresAt} ({timeToExp}min)".format(num=num, name=name, extraTab=extraTab, distance=distance, direction=direction, expiresAt=expiresAt, timeToExp=timeToExp)
-
-                # HERE IS WHERE YOU CAN DO FANCY STUFF WITH THE POKEMON DATA
-                # Suggestion:
-                #  Add these nearby pokemon to a database
-                #  Display the contents of the database
-                #  Delete from the database any pokemon whose expiresAt time has passed
-                #  This solves the issue of the nearby list only showing newly discovered pokemon (not all still in the area)
-                #  You could also make a permanent record of what pokemon have appeard & where to produce a heatmap
-
-        print('')
-        walk = getNeighbors()
-        next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
-        set_location_coords(next.lat().degrees, next.lng().degrees, 0)
+        print "{num}\t{name}\t{extraTab}{distance}m\t{direction}\t{expiry}".format(num=num, name=name, extraTab=extraTab, distance=distance, direction=direction, expiry=expiry)
 
 if __name__ == '__main__':
     main()
